@@ -4,10 +4,10 @@ Helpful structures and functions for C programming
 This is a personal library for functions I thought useful.\
 Currently included are implementations of:
 
-## Dynamic Array - st_arr
+## Dynamic Array - st_arr 
+
 Dynamically resizing array which may be indexed like normal arrays
 
------
 
 #### Initialize:
 ```c
@@ -55,7 +55,7 @@ Output:
 
 
 ## Generic Hash Map - st_map
------
+
 Create a hash map with basically anything by using void pointers. 
 
 #### Initialize:
