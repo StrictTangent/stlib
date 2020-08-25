@@ -2,7 +2,7 @@
 Helpful structures and functions for C programming
 
 This is a personal library for functions I thought useful.\
-Currently included are implementations of:
+Currently included are implementations for dynamic arrays and generic hash maps.
 
 ## Dynamic Array - st_arr 
 
