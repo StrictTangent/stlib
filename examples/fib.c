@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "stlib.h"
+#include "../stlib.h"
 
 int fib(int n);
 int fibDP(int n, st_map * memo);

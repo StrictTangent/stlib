@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "stlib.h"
+#include "../stlib.h"
 
 
 #define MAXNUM 1000
