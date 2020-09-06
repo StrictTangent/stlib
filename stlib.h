@@ -1,8 +1,12 @@
+
+#ifndef __INCLUDE_STLIB_H__
+#define __INCLUDE_STLIB_H__
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-
+#include <inttypes.h>
 
 /*********************************************************
 st_arr
@@ -34,18 +38,20 @@ Data stored this way may be lost.
 
 typedef struct {
   int length;	// Current Used Length
-  //int elemsize;
   int size;	// Total Allocation
 } st_arr_info;
 
 void * st__arr_new(int size, int count);
-int st__arr_len(void * ptr);
 void * st_arr_grow(void * ptr, int size, int amount);
 void * st__arr_addn(void * ptr, int size, int count);
+void * st__arr_copy(void * ptr, int size);
+
 void st__arr_trim(void ** ptr, int size);
 void st_arr_free(void * ptr);
+
 int st__arr_deleten(void * ptr, int size, int i, int n);
 int st__arr_insertn(void ** ptr, int size, int i, int n);
+int st__arr_len(void * ptr);
 
 #define st_arr_new(a, c) (a = st__arr_new(sizeof(*a), c))
 #define st_arr_len(a) (a ? st__arr_len(a) : 0)
@@ -67,11 +73,15 @@ int st__arr_insertn(void ** ptr, int size, int i, int n);
 #define st_arr_trim(a) (st__arr_trim((void** )&a, sizeof(*a)))
 #define st_arr_destroy(a) (st_arr_free(a))
 
+#define st_arr_copy(a) (st__arr_copy(a, sizeof(*a)))
+
 void st__arr_printsize(void * ptr, int size){
   printf("pointer size is: %ld\n", sizeof(ptr));
   printf("%d\n", size);
 }
 
+// Allocates space for new array + info header
+// Returns pointer to location where the actual array begins
 void * st__arr_new(int size, int count){
   if (count <= 0) count = ST_ARR_DEFAULT_SIZE;
   size = size * count;
@@ -86,12 +96,15 @@ void * st__arr_new(int size, int count){
 
 }
 
+// Returns length of array (up to current "end")
 int st__arr_len(void * ptr){
   if (!ptr) return 0;
   st_arr_info * info = ((st_arr_info *) ptr) - 1;
   return info->length;
 }
 
+// Increases amount of memory allocated to the array
+// Returns pointer to location where the actual array begins
 void * st_arr_grow(void * ptr, int size, int amount){
   int totalsize = (size * amount) + sizeof(st_arr_info);
   st_arr_info * head = ((st_arr_info *) ptr) - 1;
@@ -101,6 +114,8 @@ void * st_arr_grow(void * ptr, int size, int amount){
   return ptr;
 }
 
+// Increases the size of the array, growing the allocation if necessary
+// Returns pointer to location where the actual array begins
 void * st__arr_addn(void * ptr, int size, int count){
   if (!ptr){
     ptr = st__arr_new(size, ST_ARR_DEFAULT_SIZE);
@@ -119,6 +134,8 @@ void * st__arr_addn(void * ptr, int size, int count){
   return ptr;
 }
 
+// Reduces memory allocation to fit current length
+// of the array exactly.
 void st__arr_trim(void ** ptr, int size){
   void * arr = *ptr;
   if (st_arr_head(arr)->size > st_arr_head(arr)->length){
@@ -131,10 +148,13 @@ void st__arr_trim(void ** ptr, int size){
   }
 }
 
+// Frees the entire structure (header, plus array)
 void st_arr_free(void * ptr){
   free(st_arr_head(ptr));
 }
 
+// Removes n elements from array beginning at index i
+// Returns 0 if successful
 int st__arr_deleten(void * ptr, int size, int i, int n){
   if (i >= st_arr_head(ptr)->length){
     fprintf(stderr, "st_arr_delete: index out of bounds\n");
@@ -150,9 +170,10 @@ int st__arr_deleten(void * ptr, int size, int i, int n){
   memmove(dest, src, amount);
   st_arr_head(ptr)->length -= n;
   return 0;
-
 }
 
+// Inserts n elements into array beginning at index i
+// Returns 0 if succesful
 int st__arr_insertn(void ** ptr, int size, int i, int n){
   void * arr = *ptr;
   int arrsize;
@@ -185,6 +206,8 @@ int st__arr_insertn(void ** ptr, int size, int i, int n){
   return 0;
 }
 
+// Creates a copy of the entire structure
+// Returns pointer to beginning of the array
 void * st__arr_copy(void * ptr, int size){
   int totalsize = st_arr_head(ptr)->size * size;
   totalsize += sizeof(st_arr_info);
@@ -192,8 +215,6 @@ void * st__arr_copy(void * ptr, int size){
   memcpy(newcopy, st_arr_head(ptr), totalsize);
   return newcopy + 1;
 }
-
-#define st_arr_copy(a) (st__arr_copy(a, sizeof(*a)))
 
 
 
@@ -249,7 +270,7 @@ NOTE: In both these caes, the function returns 0 if
       the key is indeed in the map. To get a pointer
       more directly use:
 
-mytype * myptr = st_map_getptr_direct(mymap, "key");
+mytype * myptr = (mytype *) st_map_getptr_direct(mymap, "key");
 
 NOTE: Becareful when using pointers to elements in
       the map. Modifying their contents modifies 
@@ -273,6 +294,9 @@ struct st_map_node {
   struct st_map_node * next;
 };
 
+#define FNV_PRIME 1099511628211;
+#define FNV_OFFSET UINT64_C(14695981039346656037);
+
 typedef struct{
   struct st_map_node ** arr;
   int size;		// total size of array
@@ -289,7 +313,7 @@ struct st_map_node * st__map_createnode(char * key, void * value, int valuesize)
 int st_map_add(st_map * hmap, char * key, void * value);
 int st__map_get(st_map * hmap, char * key, void **retptr);
 
-int st__map_hash(const char * str, int size);
+int st__map_hash(char * str, int size);
 void st__map_rehash(st_map * hmap);
 
 char ** st_map_keys(st_map * hmap);
@@ -300,7 +324,9 @@ void st_map_destroy(st_map *hmap);
 #define st_map_addval(m, k, v) (st_map_add(m, k, &v))
 
 
-
+// Creates allocations for a hashmap using
+// values of given valuesize
+// Returns pointer to st_map
 st_map * st_map_createmap(int size, int valuesize){
   st_map * ret = malloc(sizeof(st_map));
   ret->arr = calloc(size, sizeof(struct st_map_node *));
@@ -311,9 +337,14 @@ st_map * st_map_createmap(int size, int valuesize){
   ret->rehashing = 0;
   ret->keys = NULL;
   return ret;
-  }
+}
 
-int st__map_hash(const char * str, int size){
+
+
+// I originally used this hash function found here:
+// https://twpower.github.io/160-hash-table-implementation-in-cpp-en
+// Very few collissions verses FNVa, but overall slower.
+int st__map_hash_orig(char * str, int size){
   int hash = 401;
 
   while(*str != 0){
@@ -323,7 +354,21 @@ int st__map_hash(const char * str, int size){
   return hash % size;
 }
 
+//FNVa Hash
+int st__map_hash(char * str, int size){
 
+  unsigned long long hash = FNV_OFFSET;
+
+  while (*str != 0){
+    hash ^= (unsigned long long) (*str); // xor
+    str++;
+    hash *= FNV_PRIME;
+  }
+  
+  return hash % size;
+}
+
+// Double the size of the array and rehash
 void st__map_rehash(st_map * hmap){
   int oldsize = hmap->size;
   hmap->size = hmap->size * 2;
@@ -349,6 +394,8 @@ void st__map_rehash(st_map * hmap){
   free(oldarr);
 }
 
+// Creates and returns new node containing copy of the data
+// stored at memory location "value"
 struct st_map_node * st__map_createnode(char * key, void * value, int valuesize){
   struct st_map_node * newnode = malloc(sizeof(struct st_map_node));
   newnode->key = malloc( strlen(key) + 1);
@@ -359,6 +406,8 @@ struct st_map_node * st__map_createnode(char * key, void * value, int valuesize)
   return newnode;
 }
 
+// Adds a copy of the data stored at location "value"
+// to the hashmap with given "key"
 int st_map_add(st_map * hmap, char * key, void * value){
   if (hmap->count == hmap->size && !hmap->rehashing){
     hmap->rehashing = 1;
@@ -367,13 +416,18 @@ int st_map_add(st_map * hmap, char * key, void * value){
   }
  
   int pos = st__map_hash(key, hmap->size);
+
   struct st_map_node * head = hmap->arr[pos];  
  
   if (head == NULL){
     hmap->arr[pos] = st__map_createnode(key, value, hmap->valuesize);
     hmap->count++;
   } else {
-
+    /*
+    if (!hmap->rehashing){
+      c_count++;
+      fprintf(stderr, "COLLISSION @ %d, count: %d\n", pos, c_count);
+    }*/
     while(head){
       if (!strcmp(head->key, key)){
 	memcpy(head->value, value, hmap->valuesize);
@@ -388,7 +442,9 @@ int st_map_add(st_map * hmap, char * key, void * value){
   return 0;
   
 }
-
+// Stores copy of pointer to value associated
+// with key into retptr
+// Returns 0 if successful
 int st__map_get(st_map * hmap, char * key, void **retptr){
   int pos = st__map_hash(key, hmap->size);
 
@@ -405,9 +461,10 @@ int st__map_get(st_map * hmap, char * key, void **retptr){
   return 1;  
 }
 
-
-
-//ADD COPY FUNCTION WHICH MALLOCS SPACE AND RETURNS POINTER?
+// Copies value associated with key
+// Into memory location retptr
+// Space MUST already be allocated at retptr
+// Returns 0 if successful
 int st_map_getcopy(st_map * hmap, char * key, void *retptr){
   int pos = st__map_hash(key, hmap->size);
   
@@ -424,12 +481,14 @@ int st_map_getcopy(st_map * hmap, char * key, void *retptr){
   return 1;  
 }
 
+// Simply returns pointer to the value associated with key
 void * st_map_getptr_direct(st_map * hmap, char * key){
   void * buffer;
   if (st_map_getptr(hmap, key, buffer)) return NULL;
   return buffer;
 }
 
+// Removes node containing key/value pair
 void st_map_remove(st_map * hmap, char * key){
   int pos = st__map_hash(key, hmap->size);
 
@@ -458,6 +517,8 @@ void st_map_remove(st_map * hmap, char * key){
   
 }
 
+// Returns 1 if node with matching key is in the map
+// Returns 0 otherwise
 int st_map_inmap(st_map * hmap, char * key){
   int pos = st__map_hash(key, hmap->size);
   if (!hmap->arr[pos]) return 0;
@@ -469,6 +530,7 @@ int st_map_inmap(st_map * hmap, char * key){
   return 0;
 }
 
+// Returns a char * array containing all the keys
 char ** st_map_keys(st_map * hmap){
   char ** keys = realloc(hmap->keys, sizeof(char *) * (hmap->count + 1));
   keys[hmap->count] = NULL;
@@ -484,9 +546,9 @@ char ** st_map_keys(st_map * hmap){
   }
   hmap->keys = keys;
   return keys;
-
 }
 
+// Frees all memory allocated for the hashmap and its contents
 void st_map_destroy(st_map *hmap){
   free(hmap->keys);
   struct st_map_node * curr;
@@ -508,6 +570,6 @@ void st_map_destroy(st_map *hmap){
 }
 
   
-
+#endif
 
 
