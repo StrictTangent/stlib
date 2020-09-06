@@ -55,8 +55,14 @@ Output:
 2.0
 3.0
 ```
-
-
+#### Other functions:
+```c
+st_arr_destroy(myarray); // Frees all memory allocated for the array
+st_arr_isempty(myarray); // Returns 0 if not empty, otherwise non-zero
+st_arr_len(myarray); // Returns the current length of the array
+st_arr_copy(myarray); // Returns pointer to a copy of the array
+st_arr_trim(myarray); // Reduces total memory allocation to the exact amount required for the array
+```
 
 ## Generic Hash Map - st_map
 
