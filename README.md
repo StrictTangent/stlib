@@ -15,10 +15,12 @@ mytype * myarray = NULL;
 ```
 #### Adding Elements:
 ```c
+st_arr_new(myarray, <initialcapacity>); // Sets up new array
 st_arr_push(myarray, <somevalue>); // Puts value at end of the array
 st_arr_add(myarray); // Increases array length by 1 
 st_arr_addn(myarray, <somevalue>); // Increases array length by <somevalue>
-st_arr_new(myarray, <initialcapacity>); // Sets up new array
+st_arr_insert(myarray, <index> <somevalue>); // Inserts <somevalue> at index <myindex>
+st_arr_insertn(myarray, <index> <n>); Inserts <n> // uninialized elements beginning at <index> 
 ```
 
 If you start using the array without using st_arr_new() to specify an intial capacity, the capacity will be set to ST_ARR_DEFAULT_SIZE.
@@ -29,9 +31,11 @@ myarr[<index_value>];
 ```
 Storing information beyond the current end of the array via indexing will not automatically expand the length. Data stored this way may be lost.
 
-#### Pop the last element off the list:
+#### Removing Elements:
 ```c
-st_arr_pop(myarray);
+st_arr_pop(myarray); // Pops the last element off the end of the array
+st_arr_delete(myarray, <index>); // Removes element at position <index>
+st_arr_deleten(myarray, <index>, <n>); // Removes <n> elements beginning at position <index>
 ```
 #### Iterate throught all elements with st_arr_for:
 Example using array of doubles:
