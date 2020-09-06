@@ -100,7 +100,7 @@ st_map_getptr(mymap, "key", myptr); // Just saves pointer to value stored in the
 #### NOTE: 
 In both these cases, the function returns 0 if the key is indeed in the map. To get a pointer more directly use:
 ```c
-mytype * myptr = st_map_getptr_direct(mymap, "key"); // saves pointer to value stored in map
+mytype * myptr = (mytype *) st_map_getptr_direct(mymap, "key"); // saves pointer to value stored in map
 ```
 #### NOTE: 
 Be careful when using pointers to elements in the map. Modifying their contents modifies data maintained by the map itself. While this may often be convenient, it is safer to modify copies and then re-add them to the map.
